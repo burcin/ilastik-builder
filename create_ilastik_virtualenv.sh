@@ -8,6 +8,7 @@
 #    qimage2ndarray: python-sip-dev qt4-dev-tools python-qt4-dev
 #    vigra: libtiff-dev libpng-dev libfftw3-dev libhdf5-dev libboost-python-dev
 #           python-nose python-numpy
+#    vtk: curl libxt-dev
 
 # the location for the install
 # the repositories will be checked out under this directory, there will also be
@@ -21,6 +22,8 @@ MAKEOPTS="-j13"
 
 # where is cplex?
 CPLEXBASE=
+
+BUILD_VTK=1
 
 
 
@@ -37,6 +40,8 @@ GITURL_VOLUMINA=$ILASTIK_GITHUB/volumina.git
 GITURL_LAZYFLOW=$ILASTIK_GITHUB/lazyflow.git
 GITURL_PGMLINK=$ILASTIK_GITHUB/pgmlink.git
 GITURL_CYLEMON=$ILASTIK_GITHUB/cylemon.git
+
+BINARYURL_VTK=http://www.vtk.org/files/release/5.10/vtk-5.10.1.tar.gz
 
 # CPLEXBASE must be provided by editing this file
 # exit early if it is not defined or the directory does not exit
@@ -74,6 +79,19 @@ PGMLINK_BUILDOPTIONS="-DCPLEX_ROOT_DIR=${CPLEXBASE} \
     -DVIGRA_INCLUDE_DIR=${VIRTUALENVDIR}/include/ \
     -DVIGRA_NUMPY_CORE_LIBRARY=${VIRTUALENVDIR}/lib/python2.7/site-packages/vigra/vigranumpycore.so"
 
+VTK_BUILDOPTIONS="-DCMAKE_INSTALL_PREFIX="${VIRTUALENVDIR}" \
+    -DBUILD_SHARED_LIBS:BOOL=ON \
+    -DVTK_PYTHON_SETUP_ARGS=--prefix="${VIRTUALENVDIR}" \
+    -DVTK_WRAP_PYTHON:BOOL=ON -DVTK_WRAP_PYTHON_SIP:BOOL=ON \
+    -DVTK_WRAP_TCL:BOOL=OFF -DVTK_USE_QT:BOOL=ON -DVTK_USE_TK:BOOL=OFF \
+    -DVTK_USE_QVTK_QTOPENGL:BOOL=ON -DVTK_USE_TK=OFF \
+    -DVTK_USE_SYSTEM_LIBXML2=ON -DVTK_USE_SYSTEM_PNG=ON  \
+    -DVTK_USE_SYSTEM_JPEG=ON -DVTK_USE_SYSTEM_TIFF=ON \
+    -DVTK_USE_SYSTEM_ZLIB=ON \
+    -DCMAKE_CXX_FLAGS=-DGLX_GLXEXT_LEGACY=1 \
+    -DSIP_PYQT_DIR:PATH=/usr/share/sip/PyQt4"
+
+
 set -e
 export LC_ALL=POSIX
 export LANG=en_US
@@ -89,8 +107,11 @@ function setup_virtualenv {
     cd ${VIRTUALENVDIR}/bin
     echo "export CPATH=${VIRTUALENVDIR}/include" >> activate
     echo "export LIBRARY_PATH=${VIRTUALENVDIR}/lib" >> activate
-    echo "export LD_LIBRARY_PATH=$ROOT/ve/lib" >> activate
-
+    if [ "$BUILD_VTK" -ne 0 ]; then
+        echo "export LD_LIBRARY_PATH=$ROOT/ve/lib:$ROOT/ve/lib/vtk-5.10" >> activate
+    else
+        echo "export LD_LIBRARY_PATH=$ROOT/ve/lib" >> activate
+    fi
     popd
 }
 
@@ -178,6 +199,20 @@ function build_python {
     popd
 }
 
+function build_vtk {
+    pushd ${ROOT}
+    curl -LO "${BINARYURL_VTK}"
+    tar xf `basename "${BINARYURL_VTK}"`
+    mkdir build/vtk
+    pushd build/vtk
+    cmake ../../VTK5.10.1 "${COMMON_BUILD_OPTIONS}" "${VTK_BUILDOPTIONS}"
+    make ${MAKEOPTS}
+    make install
+    popd
+    popd
+}
+
+
 function setup_devel {
     pushd ${ROOT}
     for i in {lazyflow,volumina}; do
@@ -250,6 +285,8 @@ clone_repos
 . ${VIRTUALENVDIR}/bin/activate
 
 build_cmake
+
+[ ${BUILD_VTK} -ne 0 ] && build_vtk
 
 build_python
 
