@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # Prerequisites
-# Ubuntu: python-virtualenv mercurial
+# Ubuntu: python-virtualenv mercurial git cmake
 #    lemon: libglpk-dev coinor-libcbc-dev coinor-libclp-dev coinor-libcgl-dev libbz2-dev
 #    cylemon: cython
 #    pgmlink: libann-dev libboost-serialization-dev
 #    qimage2ndarray: python-sip-dev qt4-dev-tools python-qt4-dev
+#    vigra: libtiff-dev libpng-dev libfftw3-dev libhdf5-dev libboost-python-dev
+#           python-nose python-numpy
 
 # the location for the install
 # the repositories will be checked out under this directory, there will also be
